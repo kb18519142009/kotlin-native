@@ -65,9 +65,9 @@ internal class KonanSerializerExtension(val context: Context, override val metad
                                 childSerializer: DescriptorSerializer) {
         uniqId(descriptor) ?. let { proto.setExtension(KonanProtoBuf.classUniqId, it) }
         super.serializeClass(descriptor, proto, versionRequirementTable, childSerializer)
-        context.ir.classesDelegatedBackingFields[descriptor]?.forEach {
-            proto.addProperty(childSerializer.propertyProto(it))
-        }
+        //context.ir.classesDelegatedBackingFields[descriptor]?.forEach {
+        //    proto.addProperty(childSerializer.propertyProto(it))
+        //}
         // Invocation of the propertyProto above can add more types
         // to the type table that should also be serialized.
         childSerializer.typeTable.serialize()?.let { proto.mergeTypeTable(it) }

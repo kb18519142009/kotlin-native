@@ -66,6 +66,8 @@ fun <K, V> MutableMap<K, V>.putOnce(k:K, v: V): Unit {
             println("parent.name = ${(v.parent as IrFile).fileEntry.name}")
 
             println("$v is ${v.descriptor}  in ${v.descriptor.containingDeclaration} ; ${this[k]} is ${(this[k] as IrDeclaration).descriptor} in ${(this[k] as IrDeclaration).descriptor.containingDeclaration}")
+            println(v.symbolName())
+            println((this[k] as IrDeclaration).symbolName())
         }
     }
     this.put(k, v)
@@ -79,9 +81,9 @@ class DescriptorTable {
     // See comment for serializeDescriptorReference() for more details.
     fun descriptorIndex(descriptor: DeclarationDescriptor, uniqId: UniqId) {
 
-        assert(!uniqId.isLocal) {
-            println("### descriptor $descriptor is local!!!")
-        }
+        //assert(!uniqId.isLocal) {
+        //    println("### descriptor $descriptor is local!!!")
+        //}
         descriptors.putOnce(descriptor, uniqId.index)
     }
 }
@@ -128,7 +130,9 @@ class DeclarationTable(val builtIns: IrBuiltIns, val descriptorTable: Descriptor
             }
         }
         reverse.putOnce(index, value)
-        if (!index.isLocal /* && value.isTopLevelDeclaration*/) textual.put(index, "${value.symbolName()} descriptor = ${value.descriptor}")
+
+        textual.put(index, "${if (index.isLocal) "" else value.symbolName()} descriptor = ${value.descriptor}")
+
 
         return index
     }
@@ -178,7 +182,7 @@ internal val IrFunction.uniqFunctionName: String
             if (it.isRoot) "" else "$it."
         }
 
-        val result =  "kfun:$containingDeclarationPart$functionName"
+        val result =  "kfun:$containingDeclarationPart#$functionName"
 
         if (this.name.asString() == "countByEnumeratingWithState") {
             println("uniqFunctionName = $result\ndescriptor = ${this.descriptor}\nsymbolName = ${this.symbolName}")

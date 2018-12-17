@@ -168,7 +168,7 @@ class IrModuleDeserialization(val logger: WithLogger, val currentModule: ModuleD
         val symbol = deserializedSymbols.getOrPut(key) {
             val descriptor = if (proto.hasDescriptorReference()) {
                 val deserialized = deserializeDescriptorReference(proto.descriptorReference)
-                if (deserialized.name.asString() == "AF_INET") println("deserializeIrSymbol: $deserialized key=$key") else Unit
+                if (deserialized.name.asString() == "NSInvocation") println("deserializeIrSymbol: $deserialized key=$key topLevelKey=$topLevelKey awaitng: ${reachableTopLevels.contains(topLevelKey)}") else Unit
                 deserialized
             } else {
                 null
@@ -228,10 +228,13 @@ class IrModuleDeserialization(val logger: WithLogger, val currentModule: ModuleD
         }
 
 
+        if (symbol.descriptor !is WrappedDeclarationDescriptor<*> && symbol.descriptor.name.asString() == "NSInvocation") {
+            println("got NSInvocation: ${symbol.descriptor} parent = ${symbol.descriptor.containingDeclaration} index = $index")
+        }
         if (symbol.descriptor is ClassDescriptor &&
             symbol.descriptor !is WrappedClassDescriptor &&
             symbol.descriptor.module.isForwardDeclarationModule) {
-
+            println("got forward decl: ${symbol.descriptor} in parent = ${symbol.descriptor.containingDeclaration}")
             forwardDeclarations.add(symbol)
         }
 
@@ -1028,6 +1031,10 @@ class IrModuleDeserialization(val logger: WithLogger, val currentModule: ModuleD
                 )
             })
 
+        if (proto.base.name == "printEnclosedStackTrace") {
+            println("declared $function for ${function.symbol} ${function.descriptor} ")
+        }
+
         deserializeIrFunctionBase(proto.base, function as IrFunctionBase, start, end, origin)
         val overridden = proto.overriddenList.map { deserializeIrSymbol(it) as IrSimpleFunctionSymbol }
         function.overriddenSymbols.addAll(overridden)
@@ -1144,7 +1151,7 @@ class IrModuleDeserialization(val logger: WithLogger, val currentModule: ModuleD
 
     private fun deserializeIrField(proto: KonanIr.IrField, start: Int, end: Int, origin: IrDeclarationOrigin): IrField {
         val symbol = deserializeIrSymbol(proto.symbol) as IrFieldSymbol
-        println("deserializeIrField: symbol = $symbol, descriptor = ${symbol.descriptor}, descriptor hash = ${symbol.descriptor.hashCode()}")
+        //println("deserializeIrField: symbol = $symbol, descriptor = ${symbol.descriptor}, descriptor hash = ${symbol.descriptor.hashCode()}")
         val field = IrFieldImpl(
             start, end, origin,
             symbol,
@@ -1309,7 +1316,11 @@ class IrModuleDeserialization(val logger: WithLogger, val currentModule: ModuleD
 
         //deserializedDeclarations.put(descriptor, declaration)
         logger.log { "### Deserialized declaration: ${descriptor} -> ${ir2string(declaration)}" }
-        //println("### Deserialized declaration: ${descriptor} ${descriptor.hashCode().toUInt().toString(16)}")
+
+        if (descriptor.name.asString() == "NSInvocation"/* || descriptor.name.asString() == "Y"*/) {
+            println("### Deserialized declaration: ${descriptor} ${descriptor.hashCode().toUInt().toString(16)}")
+            println(ir2stringWholezzz(declaration))
+        }
 
         return declaration
     }
@@ -1339,7 +1350,17 @@ class IrModuleDeserialization(val logger: WithLogger, val currentModule: ModuleD
 
     override fun findDeserializedDeclaration(symbol: IrSymbol): IrDeclaration? {
         println("findDeserializedDeclaration for ${symbol.descriptor} $symbol in ${symbol.descriptor.containingDeclaration} module = ${symbol.descriptor.module.name.asString()}")
+
         if (!symbol.isBound) {
+
+            // This is a HACK.
+            // It is a counterpart for delegated field hack property added in metadata serialization.
+            //if (symbol.descriptor is DeserializedPropertyDescriptor && symbol.descriptor.name.asString().endsWith("\$delegate")) return null
+
+            //if (symbol.descriptor is MemberDescriptor && (symbol.descriptor as? MemberDescriptor)?.visibility == Visibilities.INVISIBLE_FAKE) {
+            //    println("invisible fake requested: ${symbol.descriptor} ${(symbol.descriptor as CallableMemberDescriptor).kind}")
+            //}
+
             val topLevelDescriptor = symbol.descriptor.findTopLevelDescriptor()
 
             if (topLevelDescriptor.module.isForwardDeclarationModule) return null
@@ -1360,11 +1381,12 @@ class IrModuleDeserialization(val logger: WithLogger, val currentModule: ModuleD
             do {
                 val key = reachableTopLevels.first()
 
-                //println("key = $key")
+                println("key = $key")
 
                 if (deserializedSymbols[key]?.isBound == true) {
                     reachableTopLevels.remove(key)
                     println("this symbol is bound already, countinue: ${deserializedSymbols[key]?.descriptor}")
+                    println(ir2stringWholezzz(deserializedSymbols[key]!!.owner))
                     continue
                 }
 
@@ -1393,15 +1415,14 @@ class IrModuleDeserialization(val logger: WithLogger, val currentModule: ModuleD
         }
 
         assert(symbol.isBound) {
-            println("findDeserializedDeclaration: symbol ${symbol} is unbound, descriptor hash = ${symbol.descriptor.hashCode()}")
+            println("findDeserializedDeclaration: symbol ${symbol} is unbound, descriptor = ${symbol.descriptor},  hash = ${symbol.descriptor.hashCode()}")
         }
 
         return symbol.owner as IrDeclaration
     }
 
     override fun declareForwardDeclarations() {
-        if (forwardModuleDescriptor == null) return // null
-
+        if (forwardModuleDescriptor == null) return
 
         val packageFragments = forwardDeclarations.map { it.descriptor.findPackage() }.distinct()
 
@@ -1413,15 +1434,18 @@ class IrModuleDeserialization(val logger: WithLogger, val currentModule: ModuleD
                 .filter { it.descriptor.findPackage() == packageFragment }
             val declarations = symbols.map {
 
-                symbolTable.declareClass(UNDEFINED_OFFSET, UNDEFINED_OFFSET, irrelevantOrigin,
+                val declaration = symbolTable.declareClass(UNDEFINED_OFFSET, UNDEFINED_OFFSET, irrelevantOrigin,
                     it.descriptor as ClassDescriptor,
                     { symbol: IrClassSymbol -> IrClassImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, irrelevantOrigin, symbol) }
                 )
+                println("forward declaration: ${declaration.descriptor}")
+                declaration
+
             }
             file.declarations.addAll(declarations)
             file
         }
-        /*return*/ IrModuleFragmentImpl(forwardModuleDescriptor, builtIns, files)
+        IrModuleFragmentImpl(forwardModuleDescriptor, builtIns, files)
     }
 
     fun deserializeIrFile(fileProto: KonanIr.IrFile, moduleDescriptor: ModuleDescriptor, deserializeAllDeclarations: Boolean): IrFile {
@@ -1437,7 +1461,7 @@ class IrModuleDeserialization(val logger: WithLogger, val currentModule: ModuleD
 
         fileProto.declarationIdList.forEach {
             val uniqIdKey = it.uniqIdKey(moduleDescriptor)
-            if (uniqIdKey.uniqId.index == 744676413816618719L) println("744676413816618719: module=$moduleDescriptor, file=${fileProto.fileEntry.name}")
+            if (uniqIdKey.uniqId.index == -2569626503630051061) println("IrFile: -2569626503630051061: module=$moduleDescriptor, file=${fileProto.fileEntry.name}")
             reversedFileIndex.put(uniqIdKey, file)
 
             if (deserializeAllDeclarations) {

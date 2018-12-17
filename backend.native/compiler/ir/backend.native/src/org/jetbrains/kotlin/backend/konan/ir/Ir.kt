@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.backend.konan.ir
 
 import org.jetbrains.kotlin.backend.common.COROUTINE_SUSPENDED_NAME
 import org.jetbrains.kotlin.backend.common.RenderIrElementWithDescriptorsVisitor.Companion.DECLARATION_RENDERER
+import org.jetbrains.kotlin.backend.common.descriptors.WrappedDeclarationDescriptor
 import org.jetbrains.kotlin.backend.common.ir.Ir
 import org.jetbrains.kotlin.backend.common.ir.Symbols
 import org.jetbrains.kotlin.backend.konan.*
@@ -904,7 +905,7 @@ class RenderIrElementVisitor : IrElementVisitor<String, Nothing?> {
 
         internal fun DescriptorRenderer.renderDescriptor(descriptor: DeclarationDescriptor): String =
                 if (descriptor is ReceiverParameterDescriptor)
-                    "this@${descriptor.containingDeclaration.name}: ${descriptor.type}"
+                    "this@${if (descriptor is WrappedDeclarationDescriptor<*>) "Wrapped" else descriptor.containingDeclaration.name}: ${if (descriptor is WrappedDeclarationDescriptor<*>) "Wrapped"  else descriptor.type}"
                 else
                     render(descriptor)
 

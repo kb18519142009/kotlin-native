@@ -959,13 +959,12 @@ task innerClass_secondaryConstructor(type: RunKonanTest) {
     goldValue = "42\n"
     source = "codegen/innerClass/secondaryConstructor.kt"
 }
-/*
+
 task innerClass_linkTest(type: LinkKonanTest) {
     goldValue = ""
     source = "codegen/innerClass/linkTest_main.kt"
     lib = "codegen/innerClass/linkTest_lib.kt"
 }
-*/
 
 task localClass_localHierarchy(type: RunKonanTest) {
     goldValue = "OK\n"
@@ -1157,7 +1156,7 @@ task bridges_special(type: RunKonanTest) {
 task returnTypeSignature(type: RunKonanTest) {
     source = "codegen/bridges/returnTypeSignature.kt"
 }
-/*
+
 task classDelegation_method(type: RunKonanTest) {
     goldValue = "OKOK\n"
     source = "codegen/classDelegation/method.kt"
@@ -1183,12 +1182,12 @@ task classDelegation_linkTest(type: LinkKonanTest) {
     source = "codegen/classDelegation/linkTest_main.kt"
     lib = "codegen/classDelegation/linkTest_lib.kt"
 }
-*/
+
 task contracts(type: RunStandaloneKonanTest) {
     flags = [ '-Xuse-experimental=kotlin.Experimental', '-tr' ]
     source = "codegen/contracts/contracts.kt"
 }
-/*
+
 task delegatedProperty_simpleVal(type: RunKonanTest) {
     goldValue = "x\n42\n"
     source = "codegen/delegatedProperty/simpleVal.kt"
@@ -1235,7 +1234,7 @@ task delegatedProperty_map(type: RunKonanTest) {
     goldValue = "John Doe\n25\n"
     source = "codegen/delegatedProperty/map.kt"
 }
-*/
+
 task propertyCallableReference_valClass(type: RunKonanTest) {
     goldValue = "42\n117\n"
     source = "codegen/propertyCallableReference/valClass.kt"
@@ -1975,13 +1974,13 @@ task catch7(type: RunKonanTest) {
     goldValue = "Error happens\n"
     source = "runtime/exceptions/catch7.kt"
 }
-/*
+
 task extend_exception(type: RunKonanTest) {
     disabled = true // TODO: provide the delegated field hack for IR serializaion.
     goldValue = "OK\n"
     source = "runtime/exceptions/extend0.kt"
 }
-*/
+
 
 task runtime_math_exceptions(type: RunKonanTest) {
     disabled = (project.testTarget == 'wasm32')
@@ -2706,7 +2705,7 @@ task serialized_char_constant(type: LinkKonanTest) {
     lib = "serialization/char_const.kt"
     goldValue = "Ы\n"
 }
-/*
+
 task testing_annotations(type: RunStandaloneKonanTest) {
     source = "testing/annotations.kt"
     flags = ['-tr']
@@ -2732,7 +2731,7 @@ task testing_annotations(type: RunStandaloneKonanTest) {
             'Ignore: ignoredTest (kotlin.test.tests.AnnotationsKt)\nafterClass (file)\n' +
             'Test suite finished: kotlin.test.tests.AnnotationsKt\nIteration finished: 1\nTesting finished\n'
 }
-*/
+
 task testing_assertions(type: RunStandaloneKonanTest) {
     source = "testing/assertions.kt"
     flags = ['-tr']
@@ -3021,7 +3020,8 @@ task produce_dynamic(type: DynamicKonanTest) {
                 "singleton = I am single\n" +
                 "topLevel = 777 3\n"
 }
-/*
+
+/* it compares the compiler output. Remove debug dumps and uncomment.
 task library_mismatch(type: RunStandaloneKonanTest) {
     def dir = buildDir.absolutePath
     def lib = "$projectDir/link/versioning/empty.kt"
@@ -3052,6 +3052,7 @@ task library_mismatch(type: RunStandaloneKonanTest) {
     goldValue = isWindows() ? messages.replaceAll('\\/', '\\\\') : messages
 }
 */
+
 if (isMac() && project.testTarget != 'wasm32') {
     def target = ext.platformManager.targetByName(project.testTarget ?: 'host').name
 
@@ -3090,7 +3091,7 @@ if (isMac() && project.testTarget != 'wasm32') {
         swiftSources = ['framework/stdlib/stdlib.swift']
     }
 }
-/*
+/* fails because of 
 task buildKonanRegexTests(type: BuildKonanTest) {
     outputSourceSetName = "testOutputStdlib"
     compileList = [ "harmony_regex" ]
@@ -3106,6 +3107,7 @@ task runKonanRegexTests(type: RunKonanTest) {
     runnerLogger = RunKonanTest.Logger.GTEST
 }
 */
+
 task buildKonanStdlibTests(type: BuildKonanTest) {
     outputSourceSetName = "testOutputStdlib"
     flags = [ "-Xmulti-platform", "-friend-modules", project.rootProject.file("dist/klib/common/stdlib") ]

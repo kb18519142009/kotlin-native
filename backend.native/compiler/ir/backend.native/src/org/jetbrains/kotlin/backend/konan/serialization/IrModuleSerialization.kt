@@ -82,7 +82,7 @@ internal class IrModuleSerialization(
         val descriptor = declaration.descriptor
         if (descriptor.name.asString() == "Z_OK") println("serializeDescriptorReference: declaration $declaration descriptor=$descriptor")
 
-        if (!declaration.isExported()) {
+        if (!declaration.isExported() && !((declaration as? IrDeclarationWithVisibility)?.visibility == Visibilities.INVISIBLE_FAKE)) {
             if (descriptor.name.asString() == "Z_OK") {
                 println("is not expotred")
             }
@@ -971,7 +971,7 @@ internal class IrModuleSerialization(
     private fun serializeIrDeclarationContainer(declarations: List<IrDeclaration>): KonanIr.IrDeclarationContainer {
         val proto = KonanIr.IrDeclarationContainer.newBuilder()
         declarations.forEach {
-            //if (it.origin is IrDeclarationOrigin.FAKE_OVERRIDE) return@forEach
+            //if (it is IrDeclarationWithVisibility && it.visibility == Visibilities.INVISIBLE_FAKE) return@forEach
             proto.addDeclaration(serializeDeclaration(it))
         }
         return proto.build()
